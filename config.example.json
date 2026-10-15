@@ -1,0 +1,31 @@
+{
+  "opacity": 0.92,
+  "providers": [
+    {
+      "type": "claude",
+      "enabled": true,
+      "interval": 60,
+      "plan_interval": 180
+    },
+    {
+      "type": "grok_web",
+      "enabled": true,
+      "port": 47321
+    },
+    {
+      "type": "anthropic_api",
+      "enabled": false,
+      "interval": 600,
+      "admin_key": "",
+      "monthly_budget_usd": 0
+    },
+    {
+      "type": "xai_api",
+      "enabled": false,
+      "interval": 600,
+      "management_key": "",
+      "team_id": "",
+      "timezone": "Asia/Seoul"
+    }
+  ]
+}

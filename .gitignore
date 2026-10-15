@@ -1,0 +1,9 @@
+# 로컬 설정·상태·수집 데이터 (키나 개인 사용량이 들어갈 수 있음)
+config.json
+state.json
+data/
+widget.log
+grok_web_latest.json
+
+__pycache__/
+*.pyc
