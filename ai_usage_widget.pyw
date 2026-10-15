@@ -45,6 +45,35 @@ FONT_SMALL = ("Malgun Gothic", 8)
 BAR_W, BAR_H = 150, 6
 
 
+class _Rect(ctypes.Structure):
+    _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long), ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
+
+
+class _MonitorInfo(ctypes.Structure):
+    _fields_ = [("cbSize", ctypes.c_ulong), ("rcMonitor", _Rect), ("rcWork", _Rect), ("dwFlags", ctypes.c_ulong)]
+
+
+class _Point(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+
+_user32 = ctypes.windll.user32
+_user32.MonitorFromPoint.argtypes = [_Point, ctypes.c_ulong]
+_user32.MonitorFromPoint.restype = ctypes.c_void_p
+_user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(_MonitorInfo)]
+
+
+def work_area(x, y, nearest=True):
+    """(x, y)가 있는 모니터의 작업 영역(작업표시줄 제외). 듀얼 모니터의 음수 좌표도 처리.
+    nearest=False면 그 점이 어느 모니터에도 없을 때 None."""
+    monitor = _user32.MonitorFromPoint(_Point(int(x), int(y)), 2 if nearest else 0)
+    if not monitor:
+        return None
+    info = _MonitorInfo(cbSize=ctypes.sizeof(_MonitorInfo))
+    _user32.GetMonitorInfoW(monitor, ctypes.byref(info))
+    return info.rcWork
+
+
 def load_json(path, default):
     try:
         with open(path, encoding="utf-8-sig") as f:  # 메모장이 붙이는 BOM 허용
@@ -366,13 +395,15 @@ class Widget:
         self.set_opacity(self.opacity.get() + (0.05 if e.delta > 0 else -0.05))
 
     def _keep_on_screen(self):
+        """창이 커져 모니터 밖으로 삐져나가면, 지금 있는 모니터 안으로만 당겨 온다."""
         self.root.update_idletasks()
-        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        x0, y0 = self.root.winfo_x(), self.root.winfo_y()
         w, h = self.root.winfo_width(), self.root.winfo_height()
-        x = min(self.root.winfo_x(), sw - w - 8)
-        y = min(self.root.winfo_y(), sh - h - 48)
-        if (x, y) != (self.root.winfo_x(), self.root.winfo_y()):
-            self.root.geometry(f"+{max(0, x)}+{max(0, y)}")
+        area = work_area(x0 + w // 2, y0 + min(h, 40) // 2)
+        x = max(area.left, min(x0, area.right - w))
+        y = max(area.top, min(y0, area.bottom - h))
+        if (x, y) != (x0, y0):
+            self.root.geometry(f"+{x}+{y}")
 
     def _tick(self):
         for s in self.sections:
@@ -388,9 +419,10 @@ class Widget:
     def _place(self):
         self.root.update_idletasks()
         x, y = self.state.get("x"), self.state.get("y")
-        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
-        if x is None or not (0 <= x < sw - 40 and 0 <= y < sh - 40):
-            x, y = sw - self.root.winfo_reqwidth() - 24, 48
+        # 저장된 위치가 어느 모니터에든 있으면 그대로 (모니터를 뺐으면 메인 모니터 오른쪽 위로)
+        if x is None or y is None or work_area(x + 20, y + 10, nearest=False) is None:
+            area = work_area(0, 0)
+            x, y = area.right - self.root.winfo_reqwidth() - 24, area.top + 48
         self.root.geometry(f"+{x}+{y}")
 
     def _drag_start(self, e):
