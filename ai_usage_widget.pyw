@@ -13,6 +13,7 @@ import time
 import tkinter as tk
 import traceback
 
+import fullscreen
 import providers
 from alerts import AlertTracker, show_toast
 from providers import ProviderError
@@ -43,35 +44,6 @@ FONT = ("Malgun Gothic", 9)
 FONT_BOLD = ("Malgun Gothic", 9, "bold")
 FONT_SMALL = ("Malgun Gothic", 8)
 BAR_W, BAR_H = 150, 6
-
-
-class _Rect(ctypes.Structure):
-    _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long), ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
-
-
-class _MonitorInfo(ctypes.Structure):
-    _fields_ = [("cbSize", ctypes.c_ulong), ("rcMonitor", _Rect), ("rcWork", _Rect), ("dwFlags", ctypes.c_ulong)]
-
-
-class _Point(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-
-
-_user32 = ctypes.windll.user32
-_user32.MonitorFromPoint.argtypes = [_Point, ctypes.c_ulong]
-_user32.MonitorFromPoint.restype = ctypes.c_void_p
-_user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(_MonitorInfo)]
-
-
-def work_area(x, y, nearest=True):
-    """(x, y)가 있는 모니터의 작업 영역(작업표시줄 제외). 듀얼 모니터의 음수 좌표도 처리.
-    nearest=False면 그 점이 어느 모니터에도 없을 때 None."""
-    monitor = _user32.MonitorFromPoint(_Point(int(x), int(y)), 2 if nearest else 0)
-    if not monitor:
-        return None
-    info = _MonitorInfo(cbSize=ctypes.sizeof(_MonitorInfo))
-    _user32.GetMonitorInfoW(monitor, ctypes.byref(info))
-    return info.rcWork
 
 
 def load_json(path, default):
@@ -243,11 +215,17 @@ class Widget:
         self.root.attributes("-alpha", self.opacity.get())
         self.startup = tk.BooleanVar(value=os.path.exists(STARTUP_PATH))
         self.alerts_on = tk.BooleanVar()
+        self.auto_hide = tk.BooleanVar(value=self.state.get("auto_hide", True))
         self.mini = False
         self.load()
         if self.state.get("mini"):
             self.toggle_mini()
         self._place()
+        self.root.update_idletasks()
+        self.hwnd = fullscreen.toplevel(self.root.winfo_id())
+        self.fs_watcher = fullscreen.FullscreenWatcher(self.hwnd)
+        self.fs_hidden = False
+        self.root.after(1000, self._watch_fullscreen)
         self.root.after(300, self._poll)
         self.root.after(30000, self._tick)
 
@@ -331,6 +309,20 @@ class Widget:
                 except OSError:
                     log_exception()
 
+    def _watch_fullscreen(self):
+        try:
+            should_hide = self.auto_hide.get() and self.fs_watcher.check()
+            if should_hide != self.fs_hidden:
+                (fullscreen.hide if should_hide else fullscreen.show)(self.hwnd)
+                self.fs_hidden = should_hide
+        except Exception:  # noqa: BLE001 — 감시 루프가 멈추지 않게
+            log_exception()
+        self.root.after(1000, self._watch_fullscreen)
+
+    def _toggle_auto_hide(self):
+        self.state["auto_hide"] = self.auto_hide.get()
+        save_json(STATE_PATH, self.state)
+
     def _toggle_alerts(self):
         self.state["alerts_on"] = self.alerts_on.get()
         save_json(STATE_PATH, self.state)
@@ -399,7 +391,7 @@ class Widget:
         self.root.update_idletasks()
         x0, y0 = self.root.winfo_x(), self.root.winfo_y()
         w, h = self.root.winfo_width(), self.root.winfo_height()
-        area = work_area(x0 + w // 2, y0 + min(h, 40) // 2)
+        area = fullscreen.work_area(x0 + w // 2, y0 + min(h, 40) // 2)
         x = max(area.left, min(x0, area.right - w))
         y = max(area.top, min(y0, area.bottom - h))
         if (x, y) != (x0, y0):
@@ -420,8 +412,8 @@ class Widget:
         self.root.update_idletasks()
         x, y = self.state.get("x"), self.state.get("y")
         # 저장된 위치가 어느 모니터에든 있으면 그대로 (모니터를 뺐으면 메인 모니터 오른쪽 위로)
-        if x is None or y is None or work_area(x + 20, y + 10, nearest=False) is None:
-            area = work_area(0, 0)
+        if x is None or y is None or fullscreen.work_area(x + 20, y + 10, nearest=False) is None:
+            area = fullscreen.work_area(0, 0)
             x, y = area.right - self.root.winfo_reqwidth() - 24, area.top + 48
         self.root.geometry(f"+{x}+{y}")
 
@@ -456,6 +448,7 @@ class Widget:
         m.add_command(label="설정 다시 불러오기", command=self.load)
         thresholds = "·".join(str(t) for t in self.alerts.thresholds)
         m.add_checkbutton(label=f"한도 알림 ({thresholds}%)", variable=self.alerts_on, command=self._toggle_alerts)
+        m.add_checkbutton(label="전체화면일 때 숨기기", variable=self.auto_hide, command=self._toggle_auto_hide)
         m.add_checkbutton(label="Windows 시작 시 실행", variable=self.startup, command=self._toggle_startup)
         m.add_separator()
         m.add_command(label="종료", command=self.quit)
