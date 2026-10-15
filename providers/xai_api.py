@@ -21,6 +21,7 @@ def _cents(obj):
 class XaiApi(Provider):
     type = "xai_api"
     title = "Grok (xAI API)"
+    short = "xAI"
     interval = 600
 
     def fetch(self):

@@ -14,6 +14,7 @@ import tkinter as tk
 import traceback
 
 import providers
+from alerts import AlertTracker, show_toast
 from providers import ProviderError
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -25,10 +26,12 @@ STARTUP_PATH = os.path.join(os.environ.get("APPDATA", ""), r"Microsoft\Windows\S
 
 DEFAULT_CONFIG = {
     "opacity": 0.92,
+    "alerts": {"enabled": True, "thresholds": [80, 90]},
     "providers": [
         {"type": "claude", "enabled": True, "interval": 60, "plan_interval": 180},
         {"type": "grok_web", "enabled": True, "port": 47321},
         {"type": "anthropic_api", "enabled": False, "interval": 600, "admin_key": "", "monthly_budget_usd": 0},
+        {"type": "openai_api", "enabled": False, "interval": 600, "admin_key": "", "monthly_budget_usd": 0},
         {"type": "xai_api", "enabled": False, "interval": 600, "management_key": "", "team_id": "",
          "timezone": "Asia/Seoul"},
     ],
@@ -210,6 +213,7 @@ class Widget:
         self.opacity = tk.DoubleVar(value=self.state.get("opacity", cfg.get("opacity", 0.92)))
         self.root.attributes("-alpha", self.opacity.get())
         self.startup = tk.BooleanVar(value=os.path.exists(STARTUP_PATH))
+        self.alerts_on = tk.BooleanVar()
         self.mini = False
         self.load()
         if self.state.get("mini"):
@@ -223,6 +227,9 @@ class Widget:
         if not os.path.exists(CONFIG_PATH):
             save_json(CONFIG_PATH, DEFAULT_CONFIG)
         cfg = load_json(CONFIG_PATH, None) or DEFAULT_CONFIG  # JSON 형식 오류면 기본값
+        alert_cfg = cfg.get("alerts", DEFAULT_CONFIG["alerts"])
+        self.alerts_on.set(self.state.get("alerts_on", alert_cfg.get("enabled", True)))
+        self.alerts = AlertTracker(self.state.setdefault("alerted", {}), alert_cfg.get("thresholds", [80, 90]))
 
         for w in self.workers:
             w.alive = False
@@ -275,12 +282,29 @@ class Widget:
                 if 0 <= idx < len(self.sections):
                     self.sections[idx].update(title, rows, err, ts)
                     changed = True
+                    if rows is not None:
+                        self._check_alerts(self.sections[idx], title, rows)
         except queue.Empty:
             pass
         if changed:
             self._update_summary()
             self._keep_on_screen()
         self.root.after(500, self._poll)
+
+    def _check_alerts(self, section, title, rows):
+        fired = self.alerts.check(section.key, title, rows)  # 꺼져 있어도 상태는 따라가 켤 때 몰림 방지
+        if fired:
+            save_json(STATE_PATH, self.state)
+        if self.alerts_on.get():
+            for head, body in fired:
+                try:
+                    show_toast(head, body)
+                except OSError:
+                    log_exception()
+
+    def _toggle_alerts(self):
+        self.state["alerts_on"] = self.alerts_on.get()
+        save_json(STATE_PATH, self.state)
 
     # ---- 최소화 / 투명도 ----
     def _click(self, widget, cmd):
@@ -398,6 +422,8 @@ class Widget:
         m.add_separator()
         m.add_command(label="설정 열기 (config.json)", command=lambda: os.startfile(CONFIG_PATH))
         m.add_command(label="설정 다시 불러오기", command=self.load)
+        thresholds = "·".join(str(t) for t in self.alerts.thresholds)
+        m.add_checkbutton(label=f"한도 알림 ({thresholds}%)", variable=self.alerts_on, command=self._toggle_alerts)
         m.add_checkbutton(label="Windows 시작 시 실행", variable=self.startup, command=self._toggle_startup)
         m.add_separator()
         m.add_command(label="종료", command=self.quit)

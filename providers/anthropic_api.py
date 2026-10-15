@@ -11,6 +11,7 @@ COST_URL = "https://api.anthropic.com/v1/organizations/cost_report"
 class AnthropicApi(Provider):
     type = "anthropic_api"
     title = "Anthropic API"
+    short = "Anthropic"
     interval = 600
 
     def fetch(self):

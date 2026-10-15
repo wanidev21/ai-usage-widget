@@ -1,5 +1,12 @@
 {
   "opacity": 0.92,
+  "alerts": {
+    "enabled": true,
+    "thresholds": [
+      80,
+      90
+    ]
+  },
   "providers": [
     {
       "type": "claude",
@@ -14,6 +21,13 @@
     },
     {
       "type": "anthropic_api",
+      "enabled": false,
+      "interval": 600,
+      "admin_key": "",
+      "monthly_budget_usd": 0
+    },
+    {
+      "type": "openai_api",
       "enabled": false,
       "interval": 600,
       "admin_key": "",
