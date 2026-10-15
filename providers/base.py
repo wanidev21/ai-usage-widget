@@ -20,7 +20,11 @@ class Row:
 
 
 class ProviderError(Exception):
-    """사용자에게 그대로 보여줄 수 있는 오류."""
+    """사용자에게 그대로 보여줄 수 있는 오류. HTTP 오류면 status에 상태 코드가 들어 있다."""
+
+    def __init__(self, message, status=None):
+        super().__init__(message)
+        self.status = status
 
 
 class Provider:
@@ -58,7 +62,7 @@ def http_json(url, headers, body=None, timeout=20):
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read()[:160].decode("utf-8", "replace")
-        raise ProviderError(HTTP_MESSAGES.get(e.code, f"HTTP {e.code}: {detail}")) from None
+        raise ProviderError(HTTP_MESSAGES.get(e.code, f"HTTP {e.code}: {detail}"), e.code) from None
     except (urllib.error.URLError, TimeoutError, OSError):
         raise ProviderError("네트워크 오류") from None
 

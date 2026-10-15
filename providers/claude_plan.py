@@ -26,6 +26,10 @@ class ClaudePlan(Provider):
     interval = 180
 
     def fetch(self):
+        return self.rows(self.fetch_raw())
+
+    def fetch_raw(self):
+        """API 원본 응답. 리셋까지 남은 시간은 rows()에서 매번 다시 계산한다."""
         path = self.options.get("credentials_path") or CREDENTIALS
         try:
             with open(path, encoding="utf-8") as f:
@@ -38,11 +42,12 @@ class ClaudePlan(Provider):
         if plan:
             self.title = f"Claude {plan.capitalize()}"
 
-        data = http_json(USAGE_URL, {
+        return http_json(USAGE_URL, {
             "Authorization": "Bearer " + oauth["accessToken"],
             "anthropic-beta": "oauth-2025-04-20",
         })
 
+    def rows(self, data):
         rows = []
         for lim in data.get("limits") or []:
             if lim.get("percent") is None:
@@ -65,7 +70,7 @@ class ClaudePlan(Provider):
                             extra.get("utilization"), "이번 달"))
 
         shares = [r for r in (data.get("seven_day_breakdown") or {}).get("rows", []) if r.get("percent")]
-        if shares:
+        if shares and self.options.get("show_breakdown"):
             rows.append(Row("주간 비중", " · ".join(f"{r['display_name']} {r['percent']}%" for r in shares)))
 
         if not rows:

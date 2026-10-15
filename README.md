@@ -11,7 +11,7 @@ Python 표준 라이브러리(tkinter)만 사용하며, 새 AI는 플러그인 �
 │ 세션 (5시간)             48%   │
 │ ██████░░░░░   3시간 2분 후 리셋 │
 │ 주간 (전체)              29%   │
-│ Code 오늘     34.7M · $18.38   │
+│ 추가 사용 크레딧  $38 / $40    │
 │ Grok 앱                방금    │
 │ 주간 사용량              95%   │
 │ ███████████░  4일 18시간 후 리셋│
@@ -49,14 +49,17 @@ git clone https://github.com/wanidev21/ai-usage-widget.git
 
 | 섹션 (`type`) | 내용 | 필요한 것 |
 |---|---|---|
-| Claude (`claude`) | 플랜 한도(세션 5시간·주간 %, 리셋 시간, 추가 사용 크레딧, 챗/Code 비중) + Claude Code 오늘/7일 토큰과 API 환산 비용 | Claude Code 로그인 (자동으로 읽음) |
+| Claude (`claude`) | 플랜 한도: 세션(5시간)·주간 %, 리셋 시간, 추가 사용 크레딧 (챗과 Claude Code 공용) | Claude Code 로그인 (자동으로 읽음) |
 | Grok 앱 (`grok_web`) | 주간 사용량 %, 리셋 시간, 제품별 비중(Imagine/Chat 등), 선불 크레딧 | 동봉된 크롬 확장 |
 | Anthropic API (`anthropic_api`) | 조직 API 비용 (오늘·이번 달, 예산 대비 %) | Admin API 키 |
 | OpenAI API (`openai_api`) | 조직 API 비용 (오늘·이번 달, 예산 대비 %) | Admin 키 |
 | Grok xAI API (`xai_api`) | 오늘·이번 달 비용, 선불 잔액, 후불 한도 % | xAI Management 키 + team ID |
 | 범용 (`push`) | 외부(확장·스크립트)가 보내 주는 값을 그대로 표시 | 아래 "새 AI 추가하기" |
 
-`claude_plan`과 `claude_code`를 따로 쓰면 Claude 섹션을 둘로 나눠 볼 수도 있습니다.
+Claude 섹션은 기본으로 한도만 보여 줍니다. `config.json`의 claude 항목에 다음 옵션을 넣으면 더 볼 수 있습니다.
+
+- `"show_breakdown": true` — 주간 사용 비중 (예: Claude Code 97% · Chats 3%)
+- `"show_code_usage": true` — Claude Code 로컬 로그의 오늘/7일 토큰과 API 단가 환산 비용
 
 ### Grok 앱 — 크롬 확장 설치 (한 번만)
 
@@ -107,8 +110,9 @@ X-Usage-Widget: 1
 
 - **비공식 경로:** Claude 플랜 한도와 Grok 앱 사용량은 각 서비스 웹/앱이 내부적으로 쓰는 엔드포인트를 이용합니다. 서비스가 바뀌면 예고 없이 멈출 수 있습니다. 본인 계정의 사용량을 본인 PC에서 몇 분에 한 번 읽기만 하지만, 각 서비스 약관은 직접 확인하고 사용하세요. 이 프로젝트는 Anthropic, xAI, OpenAI와 관계가 없습니다.
 - **ChatGPT, Gemini 앱 구독 한도**는 아직 지원하지 않습니다. 공개 API가 없어서, 지원하려면 Grok처럼 웹앱 내부 요청을 찾아 확장으로 연결해야 합니다(위 "범용 push" 참고).
+- **Claude 요청 제한:** 플랜 한도 API는 너무 자주 부르면 일시적으로 막힙니다. 위젯은 마지막 값을 저장해 두고 재시작 때 그 값을 먼저 보여 주며, 막히면 5분~30분 간격으로 재시도하는 동안 "N분 전 데이터"를 표시합니다.
 - **Claude 토큰:** Claude 플랜 한도는 Claude Code가 저장한 로그인 토큰(`~/.claude/.credentials.json`)을 읽기만 합니다. 토큰이 만료되면 Claude Code를 한 번 실행하면 갱신됩니다.
-- **Claude Code 비용**은 실제 청구액이 아니라 API 단가로 환산한 추정치입니다. 단가는 `providers/pricing.py`에 있고, `config.json`의 claude 항목에 `"pricing": {"claude-opus-5-5": [4, 20, 0.2]}`처럼 덮어쓸 수 있습니다(입력, 출력, 캐시 읽기 $/MTok).
+- **Claude Code 비용**(`show_code_usage`)은 실제 청구액이 아니라 API 단가로 환산한 추정치입니다. 단가는 `providers/pricing.py`에 있고, `config.json`의 claude 항목에 `"pricing": {"claude-opus-5-5": [4, 20, 0.2]}`처럼 덮어쓸 수 있습니다(입력, 출력, 캐시 읽기 $/MTok).
 - **로컬 파일:** `config.json`(키 포함 가능), `state.json`(창 위치 등), `data/`(받은 사용량), `widget.log`는 이 PC에만 있으며 git에 올라가지 않습니다.
 
 ## 라이선스
