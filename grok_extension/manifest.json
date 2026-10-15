@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "AI 사용량 위젯 - Grok 연결",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "grok.com 사용량을 주기적으로 읽어 이 PC의 AI 사용량 위젯(127.0.0.1)으로 보냅니다.",
-  "permissions": ["alarms"],
+  "permissions": ["alarms", "cookies", "declarativeNetRequestWithHostAccess"],
   "host_permissions": ["https://grok.com/*", "http://127.0.0.1/*"],
   "background": { "service_worker": "background.js" }
 }
