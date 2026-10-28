@@ -145,9 +145,10 @@ class GrokWeb(Provider):
             rows.append(Row("추가 사용", f"{fmt_usd(info['on_demand_used'])} / {fmt_usd(info['on_demand_cap'])}",
                             info["on_demand_used"] / info["on_demand_cap"] * 100))
         if info["prepaid"] > 0:
-            rows.append(Row("선불 크레딧", fmt_usd(info["prepaid"])))
+            rows.append(Row("선불 크레딧", fmt_usd(info["prepaid"]), mini=True))
 
-        age = time.time() - float(latest.get("ts") or 0)
+        self.updated_at = float(latest.get("ts") or 0) or None
+        age = time.time() - (self.updated_at or 0)
         if age > STALE_SECS:
             rows.append(Row("", note=f"{int(age // 60)}분 전 데이터 — 크롬이 꺼져 있나요?"))
         return rows

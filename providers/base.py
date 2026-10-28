@@ -8,7 +8,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Union
 
 
 @dataclass
@@ -17,6 +17,7 @@ class Row:
     value: str = ""
     percent: Optional[float] = None  # 0~100이면 막대로 표시
     note: str = ""                   # 막대 옆 작은 글씨 (예: 리셋까지 남은 시간)
+    mini: Union[bool, str] = False   # True면 최소화 요약에도 값을 덧붙여 표시, 문자열이면 그 이름을 앞에 붙임
 
 
 class ProviderError(Exception):
@@ -32,6 +33,7 @@ class Provider:
     title = ""
     short = ""      # 최소화 모드 요약에 쓰는 짧은 이름
     interval = 120  # 초
+    updated_at = None  # 표시 중인 데이터를 실제로 받아 온 시각(epoch). None이면 fetch()가 끝난 시각으로 친다
 
     def __init__(self, options: dict):
         self.options = options

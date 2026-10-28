@@ -70,6 +70,7 @@ class Claude(Provider):
         if now >= self._next_at:
             self._refresh_plan(now)
         self.title = self.plan.title
+        self.updated_at = self._data_at or None
 
         rows = []
         if self._data is not None:

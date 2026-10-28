@@ -31,6 +31,8 @@ DEFAULT_CONFIG = {
     "providers": [
         {"type": "claude", "enabled": True, "interval": 60, "plan_interval": 180},
         {"type": "grok_web", "enabled": True, "port": 47321},
+        {"type": "gemini_web", "enabled": True},
+        {"type": "chatgpt_web", "enabled": True},
         {"type": "anthropic_api", "enabled": False, "interval": 600, "admin_key": "", "monthly_budget_usd": 0},
         {"type": "openai_api", "enabled": False, "interval": 600, "admin_key": "", "monthly_budget_usd": 0},
         {"type": "xai_api", "enabled": False, "interval": 600, "management_key": "", "team_id": "",
@@ -95,7 +97,7 @@ class Worker(threading.Thread):
                 log_exception()
                 err = f"오류: {e}"
             if self.alive:
-                self.out.put((self.idx, self.provider.title, rows, err, time.time()))
+                self.out.put((self.idx, self.provider.title, rows, err, self.provider.updated_at or time.time()))
             self.wake.wait(self.interval)
             self.wake.clear()
 
@@ -337,13 +339,19 @@ class Widget:
         items = []
         for s in self.sections:
             row = next((r for r in s.rows or [] if r.percent is not None), None)
+            extras = [r for r in s.rows or [] if r.mini and r.value and r is not row]
             if row:
-                items.append((s.short, row.value, bar_color(float(row.percent))))
-        for i, (name, value, color) in enumerate(items or [("AI 사용량", "", FG)]):
+                items.append((s.short, row.value, bar_color(float(row.percent)), extras))
+        for i, (name, value, color, extras) in enumerate(items or [("AI 사용량", "", FG, [])]):
             if i:
                 tk.Label(self.summary, text="·", font=FONT, fg=MUTED, bg=BG).pack(side="left", padx=4)
             tk.Label(self.summary, text=name, font=FONT, fg=MUTED, bg=BG).pack(side="left")
             tk.Label(self.summary, text=value, font=FONT_BOLD, fg=color, bg=BG).pack(side="left", padx=(3, 0))
+            for extra in extras:
+                if isinstance(extra.mini, str):
+                    tk.Label(self.summary, text=extra.mini, font=FONT, fg=MUTED, bg=BG).pack(side="left", padx=(4, 0))
+                color = bar_color(float(extra.percent)) if extra.percent is not None else FG
+                tk.Label(self.summary, text=extra.value, font=FONT, fg=color, bg=BG).pack(side="left", padx=(3, 0))
         for w in self.summary.winfo_children():
             self._click(w, self.toggle_mini)
 

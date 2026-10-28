@@ -20,6 +20,14 @@
       "port": 47321
     },
     {
+      "type": "gemini_web",
+      "enabled": true
+    },
+    {
+      "type": "chatgpt_web",
+      "enabled": true
+    },
+    {
       "type": "anthropic_api",
       "enabled": false,
       "interval": 600,
