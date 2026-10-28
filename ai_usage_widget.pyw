@@ -16,7 +16,7 @@ import traceback
 import fullscreen
 import providers
 from alerts import AlertTracker, show_toast
-from providers import ProviderError
+from providers import ProviderError, bridge
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(HERE, "config.json")
@@ -232,6 +232,12 @@ class Widget:
         self.root.after(30000, self._tick)
 
     # ---- 설정 / 프로바이더 ----
+    def _on_bridge_data(self, name):
+        """bridge 수신 스레드에서 불린다. tk는 건드리지 않고 해당 워커만 깨운다."""
+        for w in list(self.workers):
+            if w.provider.bridge_name == name:
+                w.wake.set()
+
     def load(self):
         if not os.path.exists(CONFIG_PATH):
             save_json(CONFIG_PATH, DEFAULT_CONFIG)
@@ -249,6 +255,7 @@ class Widget:
         self.queue = queue.Queue()
 
         providers.discover()
+        bridge.on_receive = self._on_bridge_data
         for fname, err in providers.LOAD_ERRORS:
             log(f"플러그인 {fname} 로드 실패\n{err}")
 

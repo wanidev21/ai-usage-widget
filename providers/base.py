@@ -34,6 +34,7 @@ class Provider:
     short = ""      # 최소화 모드 요약에 쓰는 짧은 이름
     interval = 120  # 초
     updated_at = None  # 표시 중인 데이터를 실제로 받아 온 시각(epoch). None이면 fetch()가 끝난 시각으로 친다
+    bridge_name = None  # bridge로 받는 데이터 이름. 그 데이터가 도착하면 간격을 기다리지 않고 바로 fetch()
 
     def __init__(self, options: dict):
         self.options = options

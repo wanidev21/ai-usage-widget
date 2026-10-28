@@ -1,7 +1,7 @@
-// gemini.google.com, chatgpt.com 페이지에서 실행된다. 사용자가 사용량 페이지를 열어 둔 동안에만
+// gemini.google.com 페이지에서 실행된다. 사용자가 사용량 페이지를 열어 둔 동안에만
 // "N% 사용됨/남음" 줄 앞 4줄 ~ 뒤 2줄을 모아 background.js로 넘긴다. 대화 목록 같은 다른 글자는 보내지 않는다.
-// 두 사이트 모두 페이지 새로고침 없이 주소만 바뀌므로 주기적으로 주소를 확인한다.
-const USAGE_PATHS = ["/usage", "/settings/usage"];
+// 페이지 새로고침 없이 주소만 바뀌므로 주기적으로 주소를 확인한다.
+const USAGE_PATHS = ["/usage"];
 const CHECK_MS = 3000;
 const RESEND_MS = 60000; // 값이 그대로여도 이 간격으로 다시 보내 "N분 전"이 갱신되게 한다
 

@@ -111,6 +111,7 @@ class GrokWeb(Provider):
     type = "grok_web"
     title = "Grok 앱"
     short = "Grok"
+    bridge_name = "grok"
     interval = 30  # 로컬 파일만 읽으므로 짧게
 
     def __init__(self, options):
@@ -122,7 +123,7 @@ class GrokWeb(Provider):
         err = bridge.ensure_server(self.port)
         if err:
             raise ProviderError(err)
-        latest = bridge.read("grok")
+        latest = bridge.read(self.bridge_name)
         if latest is None:
             raise ProviderError("크롬 확장 연결 대기 중 (README의 Grok 설정 참고)")
 

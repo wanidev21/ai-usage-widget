@@ -26,10 +26,11 @@ providers/
   bridge.py           127.0.0.1:47321 로컬 HTTP 수신 서버. POST /grok, /push/<id> → data/<이름>.json
   grok_web.py         type "grok_web": 확장이 보낸 gRPC-web/protobuf 원본을 직접 해석
   push.py             type "push": 외부에서 보낸 rows를 그대로 표시
-  web_usage.py        type "gemini_web"/"chatgpt_web": 확장이 보낸 사용량 화면 글자(/push/<이름>의 text)를 parse_limits()로 해석
+  web_usage.py        type "gemini_web": 확장이 보낸 사용량 화면 글자(/push/gemini_web의 text)를 parse_limits()로 해석
+  chatgpt_web.py      type "chatgpt_web": 확장이 보낸 /backend-api/wham/usage 응답(/push/chatgpt_web의 usage)에서 used_percent 창을 찾아 표시
   anthropic_api.py / openai_api.py / xai_api.py   Admin/Management 키로 API 비용 조회
 plugins/_example.py   새 프로바이더 템플릿(`_`로 시작하므로 로드되지 않음)
-grok_extension/       크롬 MV3 확장. 3분마다 grok.com 내부 RPC 결과를 위젯으로 POST. usage_page.js는 사용자가 연 Gemini·ChatGPT 사용량 페이지의 % 주변 글자만 보냄(창을 따로 열지 않음 — 사용자가 불편해해서 뺐다)
+grok_extension/       크롬 MV3 확장. 3분마다 grok.com 내부 RPC와 chatgpt.com wham/usage 결과를 위젯으로 POST(ChatGPT accessToken·신원 정보는 보내지 않음). usage_page.js는 사용자가 연 Gemini 사용량 페이지의 % 주변 글자만 보냄(창을 따로 열지 않음 — 사용자가 불편해해서 뺐다)
 ```
 
 ### 데이터 흐름
@@ -47,6 +48,7 @@ grok_extension/       크롬 MV3 확장. 3분마다 grok.com 내부 RPC 결과�
 - HTTP 요청은 `base.http_json`을 쓴다. 401/403/404/429와 네트워크 오류를 한국어 `ProviderError`로 바꿔 주고, `status`에 상태 코드를 담는다.
 - 키는 환경변수를 config 값보다 먼저 읽는다(`ANTHROPIC_ADMIN_KEY`, `OPENAI_ADMIN_KEY`, `XAI_MANAGEMENT_KEY`, `XAI_TEAM_ID`).
 - 데이터가 오래되었으면 `updated_at`(epoch)을 실제 수신 시각으로 설정한다. 그러면 섹션에 "N분 전"으로 표시된다.
+- bridge로 데이터를 받는 프로바이더는 `bridge_name`을 정한다. 그 이름으로 POST가 오면 `bridge.on_receive`가 위젯의 해당 워커를 바로 깨운다(간격을 기다리지 않음).
 - 새로고침 버튼(⟳)은 `invalidate()` 호출 후 워커를 깨운다. 캐시가 있는 프로바이더만 재정의한다.
 - `claude_plan`, `claude_code`도 `type`이 있으므로 단독 type으로 등록된다(README에는 `claude`만 안내됨).
 

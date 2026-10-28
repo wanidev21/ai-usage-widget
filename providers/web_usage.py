@@ -1,4 +1,4 @@
-"""Gemini 앱 / ChatGPT 사용량 — 공개 API가 없어서 크롬 확장이 사용량 화면의 글자를 읽어 보낸다.
+"""Gemini 앱 사용량 — 공개 API가 없어서 크롬 확장이 사용량 화면의 글자를 읽어 보낸다.
 
 창을 따로 열지 않고, 사용자가 사용량 페이지를 직접 열었을 때 확장(grok_extension/usage_page.js)이
 "N% 사용됨" / "N% 남음" 줄 주변의 글자만 POST /push/<이름>으로 넘긴다. 해석은 여기서 한다.
@@ -6,7 +6,8 @@
 화면 문구가 바뀌면 parse_limits()의 정규식만 고치면 된다.
 
   Gemini   gemini.google.com/usage             현재 사용량(5시간마다 초기화), 주간 한도
-  ChatGPT  chatgpt.com/settings/usage          Codex·Work 등 플랜 한도 (일반 채팅은 포함되지 않음)
+
+ChatGPT는 확장이 사용량 API를 직접 조회한다(providers/chatgpt_web.py).
 """
 import re
 import time
@@ -26,7 +27,7 @@ def parse_limits(text):
     """사용량 화면 글자에서 [(이름, 사용 %, 초기화 안내)]를 뽑는다.
 
     "N%" 줄마다 바로 위의 한도 이름 줄을 찾고, 그 이름부터 다음 이름 전까지에서 초기화 안내 줄을 찾는다.
-    Gemini는 안내가 % 아래에, ChatGPT는 위에 있어서 구간으로 찾는다.
+    안내가 % 위에 올 때도 아래에 올 때도 있어서 구간으로 찾는다.
     """
     lines = [line.strip() for line in text.splitlines()]
     labels = [i for i, line in enumerate(lines) if LABEL_RE.search(line) and not PCT_RE.match(line)]
@@ -34,7 +35,8 @@ def parse_limits(text):
     for i, line in enumerate(lines):
         m = PCT_RE.match(line)
         before = [j for j in labels if j < i]
-        if not m or not before:
+        # "사용됨/남음"이 없는 %는 한도가 아니다 (그래프 축 등)
+        if not m or not m.group(2) or not before:
             continue
         start = before[-1]
         end = next((j for j in labels if j > start), len(lines))
@@ -53,13 +55,14 @@ def parse_limits(text):
 
 class WebUsage(Provider):
     """확장이 보낸 사용량 화면 글자를 해석하는 공통 부분. 하위 클래스는 name과 site만 정한다."""
-    interval = 60  # 로컬 파일만 읽으므로 짧게
+    interval = 300  # 데이터가 도착하면 bridge가 바로 깨우므로, 이 간격은 "N시간 전" 표시 갱신용
     name = ""
     site = ""
     usage_url = ""
 
     def __init__(self, options):
         super().__init__(options)
+        self.bridge_name = self.name
         self.port = options.get("port", bridge.DEFAULT_PORT)
         bridge.ensure_server(self.port)
 
@@ -100,11 +103,3 @@ class GeminiWeb(WebUsage):
     site = "gemini.google.com"
     usage_url = "gemini.google.com/usage"
 
-
-class ChatGPTWeb(WebUsage):
-    type = "chatgpt_web"
-    title = "ChatGPT (Codex·Work, 채팅 제외)"
-    short = "GPT"
-    name = "chatgpt_web"
-    site = "chatgpt.com"
-    usage_url = "chatgpt.com/settings/usage"

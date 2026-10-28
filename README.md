@@ -56,7 +56,7 @@ git clone https://github.com/wanidev21/ai-usage-widget.git
 | Claude (`claude`) | 플랜 한도: 세션(5시간)·주간 %, 리셋 시간, 추가 사용 크레딧 (챗과 Claude Code 공용) | Claude Code 로그인 (자동으로 읽음) |
 | Grok 앱 (`grok_web`) | 주간 사용량 %, 리셋 시간, 제품별 비중(Imagine/Chat 등), 선불 크레딧 | 동봉된 크롬 확장 |
 | Gemini 앱 (`gemini_web`) | 현재 사용량(5시간마다 초기화)·주간 한도 %, 초기화 시각 | 동봉된 크롬 확장 |
-| ChatGPT (`chatgpt_web`) | Codex·Work 등 플랜 한도 % (**일반 채팅은 ChatGPT가 사용량을 보여 주지 않아 제외**) | 동봉된 크롬 확장 |
+| ChatGPT (`chatgpt_web`) | Codex·Work 등이 함께 쓰는 5시간·주간 한도 %, 리셋 시간 (**일반 채팅은 ChatGPT가 사용량을 보여 주지 않아 제외**) | 동봉된 크롬 확장 |
 | Anthropic API (`anthropic_api`) | 조직 API 비용 (오늘·이번 달, 예산 대비 %) | Admin API 키 |
 | OpenAI API (`openai_api`) | 조직 API 비용 (오늘·이번 달, 예산 대비 %) | Admin 키 |
 | Grok xAI API (`xai_api`) | 오늘·이번 달 비용, 선불 잔액, 후불 한도 % | xAI Management 키 + team ID |
@@ -72,13 +72,13 @@ Claude 섹션은 기본으로 한도만 보여 줍니다. `config.json`의 claud
 
 세 서비스의 사용량은 공개 API가 없어서, 동봉된 크롬 확장이 본인 로그인 상태로 읽어 이 PC의 위젯(`127.0.0.1:47321`)으로만 보냅니다.
 
-- **Grok:** 3분마다 grok.com 사용량 화면과 같은 내부 요청을 호출합니다.
-- **Gemini, ChatGPT:** 창을 따로 열지 않습니다. 사용자가 크롬에서 사용량 페이지(`gemini.google.com/usage`, `chatgpt.com/settings/usage`)를 열어 둔 동안에만 "N% 사용됨/남음" 주변 글자를 읽어 보냅니다. 그래서 위젯의 값은 그 페이지를 마지막으로 연 시점 기준이고, 1시간이 지나면 "N시간 전 값"으로 표시됩니다. 대화 목록 같은 다른 내용은 보내지 않습니다.
+- **Grok, ChatGPT:** 3분마다 각 사이트 사용량 화면과 같은 내부 요청을 호출합니다(창이 뜨지 않음). ChatGPT는 Codex CLI가 쓰는 것과 같은 `/backend-api/wham/usage`이며, 이메일 등 신원 정보는 빼고 보냅니다.
+- **Gemini:** 창을 따로 열지 않습니다. 사용자가 크롬에서 사용량 페이지(`gemini.google.com/usage`)를 열어 둔 동안에만 "N% 사용됨/남음" 주변 글자를 읽어 보냅니다. 그래서 위젯의 값은 그 페이지를 마지막으로 연 시점 기준이고, 1시간이 지나면 "N시간 전 값"으로 표시됩니다. 대화 목록 같은 다른 내용은 보내지 않습니다.
 
 1. 크롬 주소창에 `chrome://extensions` 입력
 2. 오른쪽 위 **개발자 모드** 켜기
 3. **압축해제된 확장 프로그램 로드** → 이 저장소의 `grok_extension` 폴더 선택
-4. grok.com에 로그인되어 있으면 몇 초 안에 **Grok 앱** 섹션이 채워집니다. Gemini·ChatGPT 섹션은 위 사용량 페이지를 한 번 열면 채워집니다. 쓰지 않는 서비스는 `config.json`에서 `"enabled": false`로 끄면 됩니다(확장은 계속 읽지만 표시만 안 함).
+4. grok.com에 로그인되어 있으면 몇 초 안에 **Grok 앱** 섹션이 채워집니다. ChatGPT 섹션도 몇 초 안에 채워지고, Gemini 섹션은 위 사용량 페이지를 한 번 열면 채워집니다. 쓰지 않는 서비스는 `config.json`에서 `"enabled": false`로 끄면 됩니다(확장은 계속 읽지만 표시만 안 함).
 
 확장을 업데이트한 뒤에는 `chrome://extensions`에서 이 확장의 새로고침(⟳) 버튼을 누르세요.
 
@@ -120,8 +120,8 @@ X-Usage-Widget: 1
 
 ## 알아둘 점
 
-- **비공식 경로:** Claude 플랜 한도와 Grok 앱 사용량은 각 서비스 웹/앱이 내부적으로 쓰는 엔드포인트를, Gemini·ChatGPT는 사용량 화면을 이용합니다. 서비스가 바뀌면 예고 없이 멈출 수 있습니다. 본인 계정의 사용량을 본인 PC에서 몇 분에 한 번 읽기만 하지만, 각 서비스 약관은 직접 확인하고 사용하세요. 이 프로젝트는 Anthropic, xAI, OpenAI, Google과 관계가 없습니다.
-- **Gemini, ChatGPT**는 사용량 화면의 글자를 읽어서 해석합니다(`providers/web_usage.py`). 화면 문구가 바뀌면 "형식이 바뀐 듯함"이 표시되며, 한국어·영어 화면만 해석합니다.
+- **비공식 경로:** Claude 플랜 한도와 Grok 앱 사용량은 각 서비스 웹/앱이 내부적으로 쓰는 엔드포인트를, ChatGPT도 내부 엔드포인트를, Gemini는 사용량 화면을 이용합니다. 서비스가 바뀌면 예고 없이 멈출 수 있습니다. 본인 계정의 사용량을 본인 PC에서 몇 분에 한 번 읽기만 하지만, 각 서비스 약관은 직접 확인하고 사용하세요. 이 프로젝트는 Anthropic, xAI, OpenAI, Google과 관계가 없습니다.
+- **Gemini**는 사용량 화면의 글자를 읽어서 해석합니다(`providers/web_usage.py`). 화면 문구가 바뀌면 "형식이 바뀐 듯함"이 표시되며, 한국어·영어 화면만 해석합니다.
 - **Claude 요청 제한:** 플랜 한도 API는 너무 자주 부르면 일시적으로 막힙니다. 위젯은 마지막 값을 저장해 두고 재시작 때 그 값을 먼저 보여 주며, 막히면 5분~30분 간격으로 재시도하는 동안 "N분 전 데이터"를 표시합니다.
 - **Claude 토큰:** Claude 플랜 한도는 Claude Code가 저장한 로그인 토큰(`~/.claude/.credentials.json`)을 읽기만 합니다. 토큰이 만료되면 위젯이 `claude auth status`를 창 없이 실행해 Claude Code가 토큰을 갱신하게 합니다(실패하면 10분 뒤 재시도). 그래도 "토큰 만료"가 보이면 Claude Code를 한 번 실행하세요.
 - **Claude Code 비용**(`show_code_usage`)은 실제 청구액이 아니라 API 단가로 환산한 추정치입니다. 단가는 `providers/pricing.py`에 있고, `config.json`의 claude 항목에 `"pricing": {"claude-opus-5-5": [4, 20, 0.2]}`처럼 덮어쓸 수 있습니다(입력, 출력, 캐시 읽기 $/MTok).

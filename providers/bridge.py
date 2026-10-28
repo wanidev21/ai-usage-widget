@@ -22,6 +22,7 @@ NAME_RE = re.compile(r"^/push/([a-z0-9_-]{1,40})$")
 _lock = threading.Lock()
 _server = None
 _server_error = None
+on_receive = None  # 데이터를 저장한 뒤 수신 스레드에서 on_receive(name)을 부른다 (위젯이 해당 워커를 바로 깨움)
 
 
 def _path_for(name):
@@ -47,7 +48,13 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_response(204)
         except (ValueError, OSError):
             self.send_response(400)
+            name = None
         self.end_headers()
+        if name and on_receive:
+            try:
+                on_receive(name)
+            except Exception:  # noqa: BLE001 — 수신 서버는 계속 살아 있어야 함
+                pass
 
     def log_message(self, *args):
         pass

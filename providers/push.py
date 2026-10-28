@@ -24,6 +24,7 @@ class Push(Provider):
     def __init__(self, options):
         super().__init__(options)
         self.id = str(options.get("id") or "").strip().lower()
+        self.bridge_name = self.id
         self.title = options.get("title") or self.id or "푸시"
         self.short = options.get("short") or self.title
         self.port = options.get("port", bridge.DEFAULT_PORT)
