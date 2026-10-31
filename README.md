@@ -66,7 +66,6 @@ Claude 섹션은 기본으로 한도만 보여 줍니다. `config.json`의 claud
 
 - `"show_breakdown": true` — 주간 사용 비중 (예: Claude Code 97% · Chats 3%)
 - `"show_code_usage": true` — Claude Code 로컬 로그의 오늘/7일 토큰과 API 단가 환산 비용
-- `"claude_path": "..."` — 토큰 갱신에 쓸 `claude` 실행 파일 경로 (PATH에서 못 찾을 때만)
 
 ### Grok · Gemini · ChatGPT — 크롬 확장 설치 (한 번만)
 
@@ -123,7 +122,7 @@ X-Usage-Widget: 1
 - **비공식 경로:** Claude 플랜 한도와 Grok 앱 사용량은 각 서비스 웹/앱이 내부적으로 쓰는 엔드포인트를, ChatGPT도 내부 엔드포인트를, Gemini는 사용량 화면을 이용합니다. 서비스가 바뀌면 예고 없이 멈출 수 있습니다. 본인 계정의 사용량을 본인 PC에서 몇 분에 한 번 읽기만 하지만, 각 서비스 약관은 직접 확인하고 사용하세요. 이 프로젝트는 Anthropic, xAI, OpenAI, Google과 관계가 없습니다.
 - **Gemini**는 사용량 화면의 글자를 읽어서 해석합니다(`providers/web_usage.py`). 화면 문구가 바뀌면 "형식이 바뀐 듯함"이 표시되며, 한국어·영어 화면만 해석합니다.
 - **Claude 요청 제한:** 플랜 한도 API는 너무 자주 부르면 일시적으로 막힙니다. 위젯은 마지막 값을 저장해 두고 재시작 때 그 값을 먼저 보여 주며, 막히면 5분~30분 간격으로 재시도하는 동안 "N분 전 데이터"를 표시합니다.
-- **Claude 토큰:** Claude 플랜 한도는 Claude Code가 저장한 로그인 토큰(`~/.claude/.credentials.json`)을 읽기만 합니다. 토큰이 만료되면 위젯이 `claude auth status`를 창 없이 실행해 Claude Code가 토큰을 갱신하게 합니다(실패하면 10분 뒤 재시도). 그래도 "토큰 만료"가 보이면 Claude Code를 한 번 실행하세요.
+- **Claude 토큰:** Claude 플랜 한도는 Claude Code가 저장한 로그인 토큰(`~/.claude/.credentials.json`)을 씁니다. 토큰이 만료되면 위젯이 Claude Code와 같은 방법으로 직접 갱신해 이 파일에 저장합니다(Claude Code가 갱신 중이면 기다렸다가 다시 읽음, 실패하면 10분 뒤 재시도). 드물게 Claude Code와 동시에 갱신해 로그인이 풀리면 `claude`에서 `/login`을 다시 하세요.
 - **Claude Code 비용**(`show_code_usage`)은 실제 청구액이 아니라 API 단가로 환산한 추정치입니다. 단가는 `providers/pricing.py`에 있고, `config.json`의 claude 항목에 `"pricing": {"claude-opus-5-5": [4, 20, 0.2]}`처럼 덮어쓸 수 있습니다(입력, 출력, 캐시 읽기 $/MTok).
 - **로컬 파일:** `config.json`(키 포함 가능), `state.json`(창 위치 등), `data/`(받은 사용량), `widget.log`는 이 PC에만 있으며 git에 올라가지 않습니다.
 

@@ -20,7 +20,7 @@ providers/
   __init__.py         discover(): providers/와 plugins/에서 Provider 하위 클래스를 자동 등록해 REGISTRY에 넣음
   base.py             Row, ProviderError, Provider 기반 클래스, http_json, fmt_until/fmt_usd/fmt_tokens/parse_iso
   claude.py           type "claude": ClaudePlan과 ClaudeCode를 묶음. data/claude_plan.json 캐시, 429일 때 백오프
-  claude_plan.py      ~/.claude/.credentials.json의 OAuth 토큰으로 api.anthropic.com/api/oauth/usage 조회(비공식)
+  claude_plan.py      ~/.claude/.credentials.json의 OAuth 토큰으로 api.anthropic.com/api/oauth/usage 조회(비공식). 만료 시 ~/.claude/oauth_refresh.lock을 잡고 직접 갱신해 파일에 저장(`claude auth status`로는 갱신 안 됨 — 확인됨)
   claude_code.py      ~/.claude/projects/**/*.jsonl 로그를 읽어 증분 집계(파일별 바이트 오프셋 캐시)
   pricing.py          모델별 단가 PRICES (입력, 출력, 캐시 읽기 $/MTok), cost_of()
   bridge.py           127.0.0.1:47321 로컬 HTTP 수신 서버. POST /grok, /push/<id> → data/<이름>.json

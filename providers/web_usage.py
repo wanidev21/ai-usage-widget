@@ -71,10 +71,9 @@ class WebUsage(Provider):
         if err:
             raise ProviderError(err)
         data = bridge.read(self.name)
-        if data is None:
+        # usage_page.js는 성공한 글자만 보낸다. ok가 아닌 데이터는 창을 열던 옛 확장(1.2.0)이 남긴 것이다.
+        if data is None or not data.get("ok"):
             raise ProviderError(f"크롬에서 {self.usage_url} 를 한 번 열어 주세요")
-        if not data.get("ok"):
-            raise ProviderError(data.get("error") or f"{self.site} 사용량 화면을 읽지 못함")
 
         limits = parse_limits(str(data.get("text") or ""))
         if not limits:
